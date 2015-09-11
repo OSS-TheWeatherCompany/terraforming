@@ -22,7 +22,7 @@ module Terraforming
           id: "/hostedzone/OPQRSTUVWXYZAB",
           name: "fuga.net.",
           caller_reference: "ABCDEFGH-5678-IJKL-9012-MNOPQRSTUVWX",
-          config: { private_zone: false },
+          config: { private_zone: true },
           resource_record_set_count: 4
         }
       end
@@ -57,10 +57,10 @@ module Terraforming
         }
       end
 
-      let(:fuga_delegation_set) do
-        {
-          name_servers: %w(ns-5678.awsdns-12.co.uk ns-901.awsdns-34.net ns-2.awsdns-56.com ns-3456.awsdns-78.org)
-        }
+      let(:fuga_vp_cs) do
+        [
+          { vpc_region: "ap-northeast-1", vpc_id: "vpc-1234abcd" }
+        ]
       end
 
       before do
@@ -71,24 +71,26 @@ module Terraforming
           { resource_tag_set: fuga_resource_tag_set },
         ])
         client.stub_responses(:get_hosted_zone, [
-          { hosted_zone: hoge_hosted_zone, delegation_set: hoge_delegation_set },
-          { hosted_zone: fuga_hosted_zone, delegation_set: fuga_delegation_set },
+          { hosted_zone: hoge_hosted_zone, delegation_set: hoge_delegation_set, vp_cs: [] },
+          { hosted_zone: fuga_hosted_zone, delegation_set: nil, vp_cs: fuga_vp_cs },
         ])
       end
 
       describe ".tf" do
         it "should generate tf" do
           expect(described_class.tf(client: client)).to eq <<-EOS
-resource "aws_route53_zone" "hoge-net" {
-    name = "hoge.net"
+resource "aws_route53_zone" "hoge-net-public" {
+    name       = "hoge.net"
 
     tags {
         "Environment" = "dev"
     }
 }
 
-resource "aws_route53_zone" "fuga-net" {
-    name = "fuga.net"
+resource "aws_route53_zone" "fuga-net-private" {
+    name       = "fuga.net"
+    vpc_id     = "vpc-1234abcd"
+    vpc_region = "ap-northeast-1"
 
     tags {
         "Environment" = "dev"
@@ -100,118 +102,39 @@ resource "aws_route53_zone" "fuga-net" {
       end
 
       describe ".tfstate" do
-        context "without existing tfstate" do
-          it "should generate tfstate" do
-            expect(described_class.tfstate(client: client)).to eq JSON.pretty_generate({
-              "version" => 1,
-              "serial" => 1,
-              "modules" => [
-                {
-                  "path" => [
-                    "root"
-                  ],
-                  "outputs" => {},
-                  "resources" => {
-                    "aws_route53_zone.hoge-net"=> {
-                      "type"=> "aws_route53_zone",
-                      "primary"=> {
-                        "id"=> "ABCDEFGHIJKLMN",
-                        "attributes"=> {
-                          "id"=> "ABCDEFGHIJKLMN",
-                          "name"=> "hoge.net",
-                          "name_servers.#" => "4",
-                          "tags.#" => "1",
-                          "zone_id" => "ABCDEFGHIJKLMN",
-                        },
-                      }
-                    },
-                    "aws_route53_zone.fuga-net"=> {
-                      "type"=> "aws_route53_zone",
-                      "primary"=> {
-                        "id"=>  "OPQRSTUVWXYZAB",
-                        "attributes"=> {
-                          "id"=> "OPQRSTUVWXYZAB",
-                          "name"=> "fuga.net",
-                          "name_servers.#" => "4",
-                          "tags.#" => "1",
-                          "zone_id" => "OPQRSTUVWXYZAB",
-                        },
-                      }
-                    }
-                  }
-                }
-              ]
-            })
-          end
-        end
-
-        context "with existing tfstate" do
-          it "should generate tfstate and merge it to existing tfstate" do
-            expect(described_class.tfstate(client: client, tfstate_base: tfstate_fixture)).to eq JSON.pretty_generate({
-              "version" => 1,
-              "serial" => 89,
-              "remote" => {
-                "type" => "s3",
-                "config" => { "bucket" => "terraforming-tfstate", "key" => "tf" }
-              },
-              "modules" => [
-                {
-                  "path" => ["root"],
-                  "outputs" => {},
-                  "resources" => {
-                    "aws_elb.hogehoge" => {
-                      "type" => "aws_elb",
-                      "primary" => {
-                        "id" => "hogehoge",
-                        "attributes" => {
-                          "availability_zones.#" => "2",
-                          "connection_draining" => "true",
-                          "connection_draining_timeout" => "300",
-                          "cross_zone_load_balancing" => "true",
-                          "dns_name" => "hoge-12345678.ap-northeast-1.elb.amazonaws.com",
-                          "health_check.#" => "1",
-                          "id" => "hogehoge",
-                          "idle_timeout" => "60",
-                          "instances.#" => "1",
-                          "listener.#" => "1",
-                          "name" => "hoge",
-                          "security_groups.#" => "2",
-                          "source_security_group" => "default",
-                          "subnets.#" => "2"
-                        }
-                      }
-                    },
-                    "aws_route53_zone.hoge-net"=> {
-                      "type"=> "aws_route53_zone",
-                      "primary"=> {
-                        "id"=> "ABCDEFGHIJKLMN",
-                        "attributes"=> {
-                          "id"=> "ABCDEFGHIJKLMN",
-                          "name"=> "hoge.net",
-                          "name_servers.#" => "4",
-                          "tags.#" => "1",
-                          "zone_id" => "ABCDEFGHIJKLMN",
-                        },
-                      }
-                    },
-                    "aws_route53_zone.fuga-net"=> {
-                      "type"=> "aws_route53_zone",
-                      "primary"=> {
-                        "id"=>  "OPQRSTUVWXYZAB",
-                        "attributes"=> {
-                          "id"=> "OPQRSTUVWXYZAB",
-                          "name"=> "fuga.net",
-                          "name_servers.#" => "4",
-                          "tags.#" => "1",
-                          "zone_id" => "OPQRSTUVWXYZAB",
-                        },
-                      }
-                    },
-                  }
-                }
-              ]
-            })
-          end
+        it "should generate tfstate" do
+          expect(described_class.tfstate(client: client)).to eq({
+            "aws_route53_zone.hoge-net-public"=> {
+              "type"=> "aws_route53_zone",
+              "primary"=> {
+                "id"=> "ABCDEFGHIJKLMN",
+                "attributes"=> {
+                  "id"=> "ABCDEFGHIJKLMN",
+                  "name"=> "hoge.net",
+                  "name_servers.#" => "4",
+                  "tags.#" => "1",
+                  "vpc_id" => "",
+                  "vpc_region" => "",
+                  "zone_id" => "ABCDEFGHIJKLMN",
+                },
+              }
+            },
+            "aws_route53_zone.fuga-net-private"=> {
+              "type"=> "aws_route53_zone",
+              "primary"=> {
+                "id"=>  "OPQRSTUVWXYZAB",
+                "attributes"=> {
+                  "id"=> "OPQRSTUVWXYZAB",
+                  "name"=> "fuga.net",
+                  "name_servers.#" => "0",
+                  "tags.#" => "1",
+                  "vpc_id" => "vpc-1234abcd",
+                  "vpc_region" => "ap-northeast-1",
+                  "zone_id" => "OPQRSTUVWXYZAB",
+                },
+              }
+            },
+          })
         end
       end
     end

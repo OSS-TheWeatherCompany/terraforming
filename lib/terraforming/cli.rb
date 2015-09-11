@@ -1,6 +1,7 @@
 module Terraforming
   class CLI < Thor
     class_option :merge, type: :string, desc: "tfstate file to merge"
+    class_option :overwrite, type: :boolean, desc: "Overwrite existng tfstate"
     class_option :tfstate, type: :boolean, desc: "Generate tfstate"
 
     desc "dbpg", "Database Parameter Group"
@@ -31,6 +32,11 @@ module Terraforming
     desc "ecsn", "ElastiCache Subnet Group"
     def ecsn
       execute(Terraforming::Resource::ElastiCacheSubnetGroup, options)
+    end
+
+    desc "eip", "EIP"
+    def eip
+      execute(Terraforming::Resource::EIP, options)
     end
 
     desc "elb", "ELB"
@@ -88,6 +94,11 @@ module Terraforming
       execute(Terraforming::Resource::NetworkACL, options)
     end
 
+    desc "nif", "Network Interface"
+    def nif
+      execute(Terraforming::Resource::NetworkInterface, options)
+    end
+
     desc "r53r", "Route53 Record"
     def r53r
       execute(Terraforming::Resource::Route53Record, options)
@@ -126,20 +137,43 @@ module Terraforming
     private
 
     def execute(klass, options)
-      result = if options[:tfstate]
-                 tfstate(klass, options[:merge])
-               else
-                 klass.tf
-               end
+      result = options[:tfstate] ? tfstate(klass, options[:merge]) : tf(klass)
 
-      puts result
+      if options[:tfstate] && options[:merge] && options[:overwrite]
+        open(options[:merge], "w+") do |f|
+          f.write(result)
+          f.flush
+        end
+      else
+        puts result
+      end
+    end
+
+    def tf(klass)
+      klass.tf
     end
 
     def tfstate(klass, tfstate_path)
-      return klass.tfstate unless tfstate_path
+      tfstate = tfstate_path ? JSON.parse(open(tfstate_path).read) : tfstate_skeleton
+      tfstate["serial"] = tfstate["serial"] + 1
+      tfstate["modules"][0]["resources"] = tfstate["modules"][0]["resources"].merge(klass.tfstate)
+      JSON.pretty_generate(tfstate)
+    end
 
-      tfstate_base = JSON.parse(open(tfstate_path).read)
-      klass.tfstate(tfstate_base: tfstate_base)
+    def tfstate_skeleton
+      {
+        "version" => 1,
+        "serial" => 0,
+        "modules" => [
+          {
+            "path" => [
+              "root"
+            ],
+            "outputs" => {},
+            "resources" => {},
+          }
+        ]
+      }
     end
   end
 end

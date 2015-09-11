@@ -1,9 +1,16 @@
 require "codeclimate-test-reporter"
-CodeClimate::TestReporter.start
+
+SimpleCov.start do
+  formatter SimpleCov::Formatter::MultiFormatter[
+    SimpleCov::Formatter::HTMLFormatter,
+    CodeClimate::TestReporter::Formatter,
+  ]
+end
 
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'terraforming'
 
+require 'tempfile'
 require 'time'
 
 def fixture_path(fixture_name)

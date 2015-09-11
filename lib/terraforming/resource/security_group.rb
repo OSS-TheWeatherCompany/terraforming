@@ -7,8 +7,8 @@ module Terraforming
         self.new(client).tf
       end
 
-      def self.tfstate(client: Aws::EC2::Client.new, tfstate_base: nil)
-        self.new(client).tfstate(tfstate_base)
+      def self.tfstate(client: Aws::EC2::Client.new)
+        self.new(client).tfstate
       end
 
       def initialize(client)
@@ -19,8 +19,8 @@ module Terraforming
         apply_template(@client, "tf/security_group")
       end
 
-      def tfstate(tfstate_base)
-        resources = security_groups.inject({}) do |result, security_group|
+      def tfstate
+        security_groups.inject({}) do |resources, security_group|
           attributes = {
             "description" => security_group.description,
             "id" => security_group.group_id,
@@ -33,7 +33,7 @@ module Terraforming
           attributes.merge!(egress_attributes_of(security_group))
           attributes.merge!(ingress_attributes_of(security_group))
 
-          result["aws_security_group.#{module_name_of(security_group)}"] = {
+          resources["aws_security_group.#{module_name_of(security_group)}"] = {
             "type" => "aws_security_group",
             "primary" => {
               "id" => security_group.group_id,
@@ -41,18 +41,17 @@ module Terraforming
             }
           }
 
-          result
+          resources
         end
-
-        generate_tfstate(resources, tfstate_base)
       end
 
       private
 
       def ingress_attributes_of(security_group)
-        attributes = { "ingress.#" => security_group.ip_permissions.length.to_s }
+        ingresses = dedup_permissions(security_group.ip_permissions, security_group.group_id)
+        attributes = { "ingress.#" => ingresses.length.to_s }
 
-        dedup_permissions(security_group).ip_permissions.each do |permission|
+        ingresses.each do |permission|
           attributes.merge!(permission_attributes_of(security_group, permission, "ingress"))
         end
 
@@ -60,9 +59,10 @@ module Terraforming
       end
 
       def egress_attributes_of(security_group)
-        attributes = { "egress.#" => security_group.ip_permissions_egress.length.to_s }
+        egresses = dedup_permissions(security_group.ip_permissions_egress, security_group.group_id)
+        attributes = { "egress.#" => egresses.length.to_s }
 
-        dedup_permissions(security_group).ip_permissions_egress.each do |permission|
+        egresses.each do |permission|
           attributes.merge!(permission_attributes_of(security_group, permission, "egress"))
         end
 
@@ -101,48 +101,33 @@ module Terraforming
         attributes
       end
 
-      def dedup_permissions(security_group)
-        grouped_ingress = security_group.ip_permissions.group_by {|perm| [perm.ip_protocol, perm.to_port, perm.from_port]}
-        grouped_egress = security_group.ip_permissions_egress.group_by {|perm| [perm.ip_protocol, perm.to_port, perm.from_port]}
+      def dedup_permissions(permissions, group_id)
+        group_permissions(permissions).inject([]) do |result, (_, perms)|
+          group_ids = perms.map(&:user_id_group_pairs).flatten.map(&:group_id)
 
-        security_group.ip_permissions = []
-        security_group.ip_permissions_egress = []
-
-        grouped_ingress.each do |range, perms|
-          if perms.length == 1
-            security_group.ip_permissions << perms.first
+          if group_ids.length == 1 && group_ids.first == group_id
+            result << merge_permissions(perms)
           else
-            g_ids = perms.map {|perm| perm.user_id_group_pairs}.flatten.map {|gp| gp.group_id}
-            if g_ids.length == 1 && g_ids.first == security_group.group_id
-              security_group.ip_permissions << merge_perms(perms)
-            else
-              security_group.ip_permissions.concat(perms)
-            end
+            result.concat(perms)
           end
-        end
 
-        grouped_egress.each do |range, perms|
-          if perms.length == 1
-            security_group.ip_permissions_egress << perms.first
-          else
-            g_ids = perms.map {|perm| perm.user_id_group_pairs}.flatten.map {|gp| gp.group_id}
-            if g_ids.length == 1 && g_ids.first == security_group.group_id
-              security_group.ip_permissions_egress << merge_perms(perms)
-            else
-              security_group.ip_permissions_egress.concat(perms)
-            end
-          end
+          result
         end
-        security_group
       end
 
-      def merge_perms(permissions)
-        master_perm = permissions.pop
-        permissions.each do |perm|
-          master_perm.user_id_group_pairs.concat(perm.user_id_group_pairs)
-          master_perm.ip_ranges.concat(perm.ip_ranges)
+      def group_permissions(permissions)
+        permissions.group_by { |permission| [permission.ip_protocol, permission.to_port, permission.from_port] }
+      end
+
+      def merge_permissions(permissions)
+        master_permission = permissions.pop
+
+        permissions.each do |permission|
+          master_permission.user_id_group_pairs.concat(permission.user_id_group_pairs)
+          master_permission.ip_ranges.concat(permission.ip_ranges)
         end
-        master_perm
+
+        master_permission
       end
 
       def permission_hashcode_of(security_group, permission)

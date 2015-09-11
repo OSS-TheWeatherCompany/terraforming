@@ -1,3 +1,53 @@
+# [v0.3.0](https://github.com/dtan4/terraforming/releases/tag/v0.3.0) (2015-08-23)
+
+## Resource
+
+- AWS Network Interface #127 (thanks @sakazuki)
+- AWS Elastic IP #124 (thanks @sakazuki)
+
+## Fixed
+
+- Normalize module name of IAM user #129
+
+# [v0.2.0](https://github.com/dtan4/terraforming/releases/tag/v0.2.0) (2015-08-22)
+
+## New feature
+
+- Add `--overwrite` option to overwrite existing `terraform.tfstate` #117
+
+## Fixed
+
+- Export S3 buckets only in the same region #121
+- Exclude DB security group with empty ingress rules #120
+- Include associated VPC parameters in Route53 hosted zone #119
+- Support Route53 hosted zone with empty delegation set #118
+
+# [v0.1.6](https://github.com/dtan4/terraforming/releases/tag/v0.1.6) (2015-08-10)
+
+### Fixed
+
+- Stop including ElastiCache port at any time #112
+
+# [v0.1.5](https://github.com/dtan4/terraforming/releases/tag/v0.1.5) (2015-08-10)
+
+### Updated
+
+- Support S3 bucket policy #110
+
+# [v0.1.4](https://github.com/dtan4/terraforming/releases/tag/v0.1.4) (2015-08-07)
+
+### Fixed
+
+- Refactor internal implements to reduce code #106
+- Add tests and improvement for Security Group #105
+
+# [v0.1.3](https://github.com/dtan4/terraforming/releases/tag/v0.1.3) (2015-08-01)
+
+### Fixed
+
+- Generate correct tf and tfstate if EC2 instance has no attached EBS #104
+- Generate correct tfstate of Security Group #101 (thanks @grosendorf)
+
 # [v0.1.2](https://github.com/dtan4/terraforming/releases/tag/v0.1.2) (2015-07-30)
 
 ### Fixed
