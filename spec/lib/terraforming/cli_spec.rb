@@ -32,6 +32,13 @@ module Terraforming
         allow(klass).to receive(:tfstate).and_return({})
       end
 
+      describe "asg" do
+        let(:klass)   { Terraforming::Resource::AutoScalingGroup }
+        let(:command) { :asg }
+
+        it_behaves_like "CLI examples"
+      end
+
       describe "dbpg" do
         let(:klass)   { Terraforming::Resource::DBParameterGroup }
         let(:command) { :dbpg }
@@ -182,6 +189,20 @@ module Terraforming
       describe "RDS" do
         let(:klass)   { Terraforming::Resource::RDS }
         let(:command) { :rds }
+
+        it_behaves_like "CLI examples"
+      end
+
+      describe "rt" do
+        let(:klass)   { Terraforming::Resource::RouteTable }
+        let(:command) { :rt }
+
+        it_behaves_like "CLI examples"
+      end
+
+      describe "rta" do
+        let(:klass)   { Terraforming::Resource::RouteTableAssociation }
+        let(:command) { :rta }
 
         it_behaves_like "CLI examples"
       end

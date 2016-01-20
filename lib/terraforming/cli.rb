@@ -3,6 +3,12 @@ module Terraforming
     class_option :merge, type: :string, desc: "tfstate file to merge"
     class_option :overwrite, type: :boolean, desc: "Overwrite existng tfstate"
     class_option :tfstate, type: :boolean, desc: "Generate tfstate"
+    class_option :profile, type: :string, desc: "AWS credentials profile"
+
+    desc "asg", "AutoScaling Group"
+    def asg
+      execute(Terraforming::Resource::AutoScalingGroup, options)
+    end
 
     desc "dbpg", "Database Parameter Group"
     def dbpg
@@ -114,6 +120,16 @@ module Terraforming
       execute(Terraforming::Resource::RDS, options)
     end
 
+    desc "rt", "Route Table"
+    def rt
+      execute(Terraforming::Resource::RouteTable, options)
+    end
+
+    desc "rta", "Route Table Association"
+    def rta
+      execute(Terraforming::Resource::RouteTableAssociation, options)
+    end
+
     desc "s3", "S3"
     def s3
       execute(Terraforming::Resource::S3, options)
@@ -137,6 +153,7 @@ module Terraforming
     private
 
     def execute(klass, options)
+      Aws.config[:credentials] = Aws::SharedCredentials.new(profile_name: options[:profile]) if options[:profile]
       result = options[:tfstate] ? tfstate(klass, options[:merge]) : tf(klass)
 
       if options[:tfstate] && options[:merge] && options[:overwrite]

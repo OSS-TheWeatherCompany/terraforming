@@ -1,3 +1,37 @@
+# [v0.6.0](https://github.com/dtan4/terraforming/releases/tag/v0.5.0) (2015-11-21)
+
+## Resource
+
+- AWS Route Table Association #138 (thanks @k1LoW)
+
+# [v0.5.0](https://github.com/dtan4/terraforming/releases/tag/v0.5.0) (2015-11-20)
+
+## Resource
+
+- AWS Route Table #137 (thanks @k1LoW)
+
+# [v0.4.0](https://github.com/dtan4/terraforming/releases/tag/v0.4.0) (2015-11-10)
+
+## New feature
+
+- Add `--profile` option to read credential profile #135 (thanks @k1LoW)
+
+## Resource
+
+- AWS AutoScaling Group #134
+
+# [v0.3.2](https://github.com/dtan4/terraforming/releases/tag/v0.3.2) (2015-10-06)
+
+## Fixed
+
+- Exclude iops field from EC2 instance tf with standard block device #132
+
+# [v0.3.1](https://github.com/dtan4/terraforming/releases/tag/v0.3.1) (2015-09-24)
+
+## Fixed
+
+- Export EC2 instance monitoring state #130 (thanks @ngs)
+
 # [v0.3.0](https://github.com/dtan4/terraforming/releases/tag/v0.3.0) (2015-08-23)
 
 ## Resource

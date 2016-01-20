@@ -20,9 +20,9 @@ module Terraforming
             ami_launch_index: 0,
             product_codes: [],
             instance_type: "t2.micro",
+            monitoring: { state: "disabled" },
             launch_time: Time.parse("2015-03-12 01:23:45 UTC"),
             placement: { availability_zone: "ap-northeast-1b", group_name: "", tenancy: "default" },
-            monitoring: { state: "disabled" },
             subnet_id: "subnet-1234abcd",
             vpc_id: "vpc-1234abcd",
             private_ip_address: "10.0.0.100",
@@ -103,9 +103,9 @@ module Terraforming
             ami_launch_index: 0,
             product_codes: [],
             instance_type: "t2.micro",
+            monitoring: { state: "enabled" },
             launch_time: Time.parse("2015-03-12 01:23:45 UTC"),
             placement: { availability_zone: "ap-northeast-1b", group_name: "", tenancy: "default" },
-            monitoring: { state: "disabled" },
             subnet_id: "",
             vpc_id: "vpc-5678efgh",
             private_ip_address: "10.0.0.101",
@@ -184,9 +184,9 @@ module Terraforming
             ami_launch_index: 0,
             product_codes: [],
             instance_type: "t2.micro",
+            monitoring: { state: "pending" },
             launch_time: Time.parse("2015-03-12 01:23:45 UTC"),
             placement: { availability_zone: "ap-northeast-1b", group_name: "", tenancy: "default" },
-            monitoring: { state: "disabled" },
             subnet_id: "",
             vpc_id: "vpc-9012ijkl",
             private_ip_address: "10.0.0.102",
@@ -278,8 +278,7 @@ module Terraforming
                 delete_on_termination: true
               }
             ],
-            volume_type: "gp2",
-            iops: 24,
+            volume_type: "standard",
             encrypted: false
           }
         ]
@@ -324,6 +323,7 @@ resource "aws_instance" "hoge" {
     availability_zone           = "ap-northeast-1b"
     ebs_optimized               = false
     instance_type               = "t2.micro"
+    monitoring                  = false
     key_name                    = "hoge-key"
     subnet_id                   = "subnet-1234abcd"
     vpc_security_group_ids      = ["sg-1234abcd"]
@@ -332,9 +332,8 @@ resource "aws_instance" "hoge" {
     source_dest_check           = true
 
     root_block_device {
-        volume_type           = "gp2"
+        volume_type           = "standard"
         volume_size           = 8
-        iops                  = 24
         delete_on_termination = true
     }
 
@@ -348,6 +347,7 @@ resource "aws_instance" "i-5678efgh" {
     availability_zone           = "ap-northeast-1b"
     ebs_optimized               = false
     instance_type               = "t2.micro"
+    monitoring                  = true
     key_name                    = "hoge-key"
     security_groups             = ["default"]
     associate_public_ip_address = true
@@ -372,6 +372,7 @@ resource "aws_instance" "i-9012ijkl" {
     availability_zone           = "ap-northeast-1b"
     ebs_optimized               = false
     instance_type               = "t2.micro"
+    monitoring                  = true
     key_name                    = "hoge-key"
     security_groups             = ["default"]
     associate_public_ip_address = true
@@ -402,6 +403,7 @@ resource "aws_instance" "i-9012ijkl" {
                   "ephemeral_block_device.#" => "0",
                   "id" => "i-1234abcd",
                   "instance_type" => "t2.micro",
+                  "monitoring" => "false",
                   "private_dns" => "ip-10-0-0-100.ap-northeast-1.compute.internal",
                   "private_ip" => "10.0.0.100",
                   "public_dns" => "ec2-54-12-0-0.ap-northeast-1.compute.amazonaws.com",
@@ -431,6 +433,7 @@ resource "aws_instance" "i-9012ijkl" {
                   "ephemeral_block_device.#" => "0",
                   "id" => "i-5678efgh",
                   "instance_type" => "t2.micro",
+                  "monitoring" => "true",
                   "private_dns" => "ip-10-0-0-101.ap-northeast-1.compute.internal",
                   "private_ip" => "10.0.0.101",
                   "public_dns" => "ec2-54-12-0-1.ap-northeast-1.compute.amazonaws.com",
@@ -459,6 +462,7 @@ resource "aws_instance" "i-9012ijkl" {
                   "ephemeral_block_device.#" => "0",
                   "id" => "i-9012ijkl",
                   "instance_type" => "t2.micro",
+                  "monitoring" => "true",
                   "private_dns" => "ip-10-0-0-102.ap-northeast-1.compute.internal",
                   "private_ip" => "10.0.0.102",
                   "public_dns" => "ec2-54-12-0-2.ap-northeast-1.compute.amazonaws.com",
